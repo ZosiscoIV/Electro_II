@@ -99,7 +99,7 @@ class HX711:
 # 7-Segment Display Pins (common cathode)
 SEGMENT_PINS = [27, 26, 22, 21, 20, 19, 18]
 # Digit Select Pins
-DIGIT_PINS = [2, 3]
+DIGIT_PINS = [2, 3, 4]
 
 # Segments for numbers 0-9
 SEGMENT_PATTERNS = [
@@ -146,14 +146,18 @@ class Display:
         """Display a 2-digit number on the 7-segment display."""
 
         # Ensure number is two digits
-        number = max(0, min(99, int(number)))
+        round_number = max(0, min(99, int(number)))
 
         # Display tens digit
-        self.display_digit(number // 10, 0)
+        self.display_digit(round_number // 10, 0)
         time.sleep_ms(5)
         
         # Display ones digit
-        self.display_digit(number % 10, 1)
+        self.display_digit(round_number % 10, 1)
+        time.sleep_ms(5)
+
+        # Display decimal digit
+        self.display_digit(int((number - round(number)) * 10), 2)
         time.sleep_ms(5)
 
 
@@ -172,6 +176,8 @@ def main():
     
     # Initialize display
     display = Display(SEGMENT_PINS, DIGIT_PINS)
+    point = machine.Pin(5, machine.Pin.OUT)
+    point.value(1)
     
     # Initialize alarm components
     buzzer = machine.Pin(14, machine.Pin.OUT)
@@ -184,16 +190,16 @@ def main():
             weight = abs(hx.read_long())
             
             # Display weight (limited to 99 for 2-digit display)
-            display_weight = min(int(weight), 99)
+            display_weight = min(weight, 99)
             display.show_number(display_weight)
             
             # Alarm if weight exceeds 200kg
             print(f"Current weight: {weight}")
-            if weight > 25:
+            if weight > 20:
                 # Sound buzzer and light LED
                 buzzer.on()
                 alarm_led.on()
-                print("ALARM: Weight exceeds 25kg!")
+                print("ALARM: Weight exceeds 20kg!")
             else:
                 # Turn off alarm
                 buzzer.off()
