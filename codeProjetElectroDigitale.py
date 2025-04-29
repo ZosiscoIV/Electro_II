@@ -1,5 +1,6 @@
 import machine
 import time
+import math
 
 class HX711:
     def __init__(self, dout, pd_sck, gain=128):
@@ -113,6 +114,7 @@ SEGMENT_PATTERNS = [
     0b1110000,  # 7
     0b1111111,  # 8
     0b1111011,  # 9
+    0b0000000,  # 10
 ]
 
 class Display:
@@ -149,16 +151,22 @@ class Display:
         round_number = max(0, min(99, int(number)))
 
         # Display tens digit
-        self.display_digit(round_number // 10, 0)
-        time.sleep_ms(5)
+        if (round_number // 10):
+            self.display_digit(round_number // 10, 0)
+            time.sleep_ms(3)
+        else:
+            self.display_digit(10, 0)
+            time.sleep_ms(3)
+
         
         # Display ones digit
         self.display_digit(round_number % 10, 1)
-        time.sleep_ms(5)
+        time.sleep_ms(3)
 
         # Display decimal digit
-        self.display_digit(int((number - round(number)) * 10), 2)
-        time.sleep_ms(5)
+        self.display_digit(int(round((number - math.floor(number)) * 10)), 2)
+        time.sleep_ms(3)
+
 
 
 def main():
@@ -183,15 +191,17 @@ def main():
     buzzer = machine.Pin(14, machine.Pin.OUT)
     alarm_led = machine.Pin(15, machine.Pin.OUT)
     
+    timer1 = machine.Timer()
+
     print("Entering main loop")
     while True:
         try:
             # Read weight
             weight = abs(hx.read_long())
-            
+            weight = 14.2
             # Display weight (limited to 99 for 2-digit display)
             display_weight = min(weight, 99)
-            display.show_number(display_weight)
+            timer1.init(freq=2, mode=machine.Timer.PERIODIC, callback=display.show_number(display_weight))
             
             # Alarm if weight exceeds 200kg
             print(f"Current weight: {weight}")
@@ -206,7 +216,7 @@ def main():
                 alarm_led.off()
             
             # Small delay to prevent overwhelming the system
-            time.sleep_ms(100)
+            time.sleep_ms(8)
         
         except Exception as e:
             # Basic error handling
